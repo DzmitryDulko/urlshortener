@@ -59,8 +59,12 @@ async def shorten_url(request: Request, item: Item):
     serverLogger.info(msg={f"Writing {item}"})
 
     long_url = item.long_url
-    counter_key = r.incr('counter_key')
-    short_id = hashids.encode(counter_key)
+    while True:
+        counter_key = r.incr('counter_key')
+        short_id = hashids.encode(counter_key)
+        if not r.exists(short_id):
+            break
+    
     parsed_url = urlparse(request.url._url)
     short_url = f"{parsed_url.scheme}://{parsed_url.netloc}/" + short_id
     r.set(short_id, long_url)
