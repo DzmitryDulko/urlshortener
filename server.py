@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import logging
 from pythonjsonlogger import jsonlogger
 from datetime import datetime
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
@@ -39,6 +40,7 @@ fastapiLogger.handlers = [logHandler]
 uvicornLogger = logging.getLogger("uvicorn")
 uvicornLogger.handlers = [logHandler]
 
+# Data payload schema for post request
 class Item(BaseModel):
     long_url: str
 
@@ -48,6 +50,10 @@ hashids = hashids.Hashids(salt='my_salt', min_length=5)
 # Connect to redis
 r = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 
+@app.on_event("startup")
+async def startup():
+    Instrumentator().instrument(app).expose(app)
+    
 @app.post("/shorten")
 async def shorten_url(request: Request, item: Item):
     serverLogger.info(msg={f"Writing {item}"})
